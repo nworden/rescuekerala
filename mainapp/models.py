@@ -362,33 +362,65 @@ class Announcements(models.Model):
         return self.get_district_display()
 
 class GPersonFinderRecord(models.Model):
-    person_record_id = models.CharField(max_length=50)
-    entry_date = models.DateTimeField()
-    expiry_date = models.DateTimeField()
-    author_name = models.CharField(max_length=250, blank=True)
-    author_email = models.CharField(max_length=100, blank=True)
-    author_phone = models.CharField(max_length=15, blank=True)
-    original_creation_date = models.DateTimeField(blank=True)
-    source_date = models.DateTimeField(blank=True)
+    person_record_id = models.CharField(max_length=200)
+    entry_date = models.CharField(max_length=20)
+    expiry_date = models.CharField(max_length=20)
+    author_name = models.CharField(max_length=500, blank=True)
+    author_email = models.CharField(max_length=200, blank=True)
+    author_phone = models.CharField(max_length=30, blank=True)
+    original_creation_date = models.CharField(max_length=20, null=True)
+    source_date = models.CharField(max_length=20, null=True)
     source_name = models.CharField(max_length=200, blank=True)
     source_url = models.CharField(max_length=200, blank=True)
-    full_name = models.CharField(max_length=200, blank=True)
-    given_name = models.CharField(max_length=200, blank=True)
-    family_name = models.CharField(max_length=200, blank=True)
-    alternate_names = models.CharField(max_length=400, blank=True)
-    description = models.CharField(max_length=600, blank=True)
+    full_name = models.CharField(max_length=500, blank=True)
+    given_name = models.CharField(max_length=500, blank=True)
+    family_name = models.CharField(max_length=500, blank=True)
+    alternate_names = models.CharField(max_length=500, blank=True)
+    description = models.TextField(blank=True)
     sex = models.CharField(max_length=6, blank=True)
     date_of_birth = models.CharField(max_length=20, blank=True)
-    # Sometimes ages are given as a range, e.g., 30-40, so need 5 chars.
-    age = models.CharField(max_length=5, blank=True)
-    home_street = models.CharField(max_length=40, blank=True)
-    home_neighborhood = models.CharField(max_length=30, blank=True)
-    home_city = models.CharField(max_length=20, blank=True)
-    home_state = models.CharField(max_length=30, blank=True)
-    home_postal_code = models.CharField(max_length=15, blank=True)
+    age = models.CharField(max_length=15, blank=True)
+    home_street = models.CharField(max_length=500, blank=True)
+    home_neighborhood = models.CharField(max_length=50, blank=True)
+    home_city = models.CharField(max_length=50, blank=True)
+    home_state = models.CharField(max_length=50, blank=True)
+    home_postal_code = models.CharField(max_length=130, blank=True)
     home_country = models.CharField(max_length=20, blank=True)
-    photo_url = models.CharField(max_length=100, blank=True)
-    profile_urls = models.CharField(max_length=200, blank=True)
+    photo_url = models.CharField(max_length=250, blank=True)
+    profile_urls = models.CharField(max_length=400, blank=True)
+
+    AUTO_PFIF_STRING_FIELD_MAPPING = {
+        'author_name': 'author_name',
+        'author_email': 'author_email',
+        'author_phone': 'author_phone',
+        'source_name': 'source_name',
+        'source_url': 'source_url',
+        'full_name': 'full_name',
+        'given_name': 'given_name',
+        'family_name': 'family_name',
+        'alternate_names': 'alternate_names',
+        'description': 'description',
+        'sex': 'sex',
+        'date_of_birth': 'date_of_birth',
+        'age': 'age',
+        'home_street': 'home_street',
+        'home_neighborhood': 'home_neighborhood',
+        'home_city': 'home_city',
+        'home_state': 'home_state',
+        'home_postal_code': 'home_postal_code',
+        'home_country': 'home_country',
+        'photo_url': 'photo_url',
+        'profile_urls': 'profile_urls',
+        'entry_date': 'entry_date',
+        'expiry_date': 'expiry_date',
+        'original_creation_date': 'original_creation_date',
+        'source_date': 'source_date',
+    }
+
+    def FillFromPfifRecord(self, p):
+        for key, value in GPersonFinderRecord.AUTO_PFIF_STRING_FIELD_MAPPING.items():
+            if key in p:
+                setattr(self, value, p[key])
 
 class GPersonFinderNote(models.Model):
     NOTE_STATUS_CHOICES = (
@@ -400,17 +432,17 @@ class GPersonFinderNote(models.Model):
         ('believed_dead', 'Believed Dead'),
     )
     person = models.ForeignKey('GPersonFinderRecord', on_delete=models.CASCADE)
-    entry_date = models.DateTimeField()
-    author_name = models.CharField(max_length=250, blank=True)
-    author_email = models.CharField(max_length=100, blank=True)
-    author_phone = models.CharField(max_length=20, blank=True)
-    linked_pf_record_id = models.CharField(max_length=50, blank=True)
-    original_creation_date = models.DateTimeField(blank=True)
-    source_date = models.DateTimeField(blank=True)
-    status = models.CharField(choices=NOTE_STATUS_CHOICES, blank=True, max_length=20)
+    entry_date = models.CharField(max_length=20)
+    author_name = models.CharField(max_length=500, blank=True)
+    author_email = models.CharField(max_length=200, blank=True)
+    author_phone = models.CharField(max_length=30, blank=True)
+    linked_pf_record_id = models.CharField(max_length=200, blank=True)
+    original_creation_date = models.CharField(max_length=20, blank=True)
+    source_date = models.CharField(max_length=20, blank=True)
+    status = models.CharField(choices=NOTE_STATUS_CHOICES, blank=True, max_length=25)
     author_made_contact = models.BooleanField(blank=True)
-    email_of_found_person = models.CharField(max_length=100, blank=True)
-    phone_of_found_person = models.CharField(max_length=15, blank=True)
-    last_known_location = models.CharField(max_length=250, blank=True)
-    text = models.CharField(max_length=1000, blank=True)
-    photo_url = models.CharField(max_length=100, blank=True)
+    email_of_found_person = models.CharField(max_length=200, blank=True)
+    phone_of_found_person = models.CharField(max_length=30, blank=True)
+    last_known_location = models.CharField(max_length=500, blank=True)
+    text = models.TextField(blank=True)
+    photo_url = models.CharField(max_length=250, blank=True)
