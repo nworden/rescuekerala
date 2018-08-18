@@ -432,6 +432,7 @@ class GPersonFinderNote(models.Model):
         ('believed_dead', 'Believed Dead'),
     )
     person = models.ForeignKey('GPersonFinderRecord', on_delete=models.CASCADE)
+    note_record_id = models.CharField(max_length=200)
     entry_date = models.CharField(max_length=20)
     author_name = models.CharField(max_length=500, blank=True)
     author_email = models.CharField(max_length=200, blank=True)
@@ -446,3 +447,26 @@ class GPersonFinderNote(models.Model):
     last_known_location = models.CharField(max_length=500, blank=True)
     text = models.TextField(blank=True)
     photo_url = models.CharField(max_length=250, blank=True)
+
+    AUTO_PFIF_STRING_FIELD_MAPPING = {
+        'entry_date': 'entry_date',
+        'author_name': 'author_name',
+        'author_email': 'author_email',
+        'author_phone': 'author_phone',
+        'linked_pf_record_id': 'linked_pf_record_id',
+        'original_creation_date': 'original_creation_date',
+        'source_date': 'source_date',
+        'status': 'status',
+        'email_of_found_person': 'email_of_found_person',
+        'phone_of_found_person': 'phone_of_found_person',
+        'last_known_location': 'last_known_location',
+        'text': 'text',
+        'photo_url': 'photo_url',
+    }
+
+    def FillFromPfifRecord(self, p):
+        for key, value in GPersonFinderNote.AUTO_PFIF_STRING_FIELD_MAPPING.items():
+            if key in p:
+                setattr(self, value, p[key])
+        if 'author_made_contact' in p:
+            self.author_made_contact = p['author_made_contact'] == 'true'
