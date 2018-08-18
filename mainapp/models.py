@@ -388,6 +388,8 @@ class GPersonFinderRecord(models.Model):
     home_country = models.CharField(max_length=20, blank=True)
     photo_url = models.CharField(max_length=250, blank=True)
     profile_urls = models.CharField(max_length=400, blank=True)
+    is_duplicate_of_person = models.ForeignKey('Person', null=True, on_delete=models.SET_NULL)
+    is_duplicate_of_req = models.ForeignKey('Request', null=True, on_delete=models.SET_NULL)
 
     AUTO_PFIF_STRING_FIELD_MAPPING = {
         'author_name': 'author_name',
