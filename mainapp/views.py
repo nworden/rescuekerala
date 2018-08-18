@@ -1,8 +1,9 @@
+import collections
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic.edit import CreateView, UpdateView
 from django.views.generic.base import TemplateView
-from .models import Request, Volunteer, DistrictManager, Contributor, DistrictNeed, Person, RescueCamp, NGO, Announcements
+from .models import Request, Volunteer, DistrictManager, Contributor, DistrictNeed, Person, RescueCamp, NGO, Announcements, GPersonFinderRecord
 import django_filters
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.http import JsonResponse
@@ -20,6 +21,9 @@ from django.urls import reverse
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.http import Http404
 from mainapp.admin import create_csv_response
+from floodrelief import settings as floodrelief_settings
+from mainapp.utils import pfif
+import urllib
 
 class CreateRequest(CreateView):
     model = Request
@@ -471,3 +475,65 @@ def camp_requirements_list(request):
     page = request.GET.get('page')
     data = paginator.get_page(page)
     return render(request, "mainapp/camp_requirements_list.html", {'filter': filter , 'data' : data})
+
+def _gpersonfinder_import_process_person(p, counts):
+    if 'person_record_id' not in p:
+        counts['skipped: no person record ID'] += 1
+        return
+    existing_q = GPersonFinderRecord.objects.filter(
+        person_record_id=p['person_record_id'])
+    if existing_q.exists():
+        record = existing_q[0]
+        if record.entry_date >= p['entry_date']:
+            counts['skipped: already stored entry'] += 1
+            return
+        is_update = True
+    else:
+        record = GPersonFinderRecord(person_record_id=p['person_record_id'])
+        is_update = False
+    record.FillFromPfifRecord(p)
+    try:
+        record.save()
+        counts['updated record' if is_update else 'new record'] += 1
+    except Exception as e:
+        counts['skipped: error on saving record'] += 1
+    return counts
+
+def _gpersonfinder_import_persons(max_results):
+    latest_record_q = GPersonFinderRecord.objects.order_by("-entry_date")
+    if latest_record_q.exists():
+        min_entry_date = (latest_record_q[0].entry_date)
+    else:
+        min_entry_date = "2018-01-01T01:02:03Z"
+    print('min_entry_date: ' + min_entry_date)
+    counts = collections.defaultdict(lambda: 0)
+    offset = 0
+    while offset < max_results:
+        # PF returns a max of 200 at once.
+        iter_max_results = min(200, max_results - offset)
+        url = 'https://google.org/personfinder/2018-kerala-flooding/feeds/person?'
+        arg_map = {
+            'key': floodrelief_settings.env('GOOGLE_PERSON_FINDER_KEY'),
+            'min_entry_date': min_entry_date,
+            'skip': offset,
+            'max_results': iter_max_results,
+        }
+        url += '&'.join(['%s=%s' % (k, v) for k, v in arg_map.items()])
+        res = urllib.request.urlopen(url)
+        pfif_records = pfif.parse_file(res, rename_fields=False)[0]
+        for pfif_record in pfif_records:
+            _gpersonfinder_import_process_person(pfif_record, counts)
+        offset += iter_max_results
+    return counts
+
+def gpersonfinder_import(request):
+    do_notes = request.GET['type'] == 'notes'
+    max_results = int(request.GET['max_results']) or 1000
+    if do_notes:
+        pass
+    else:
+        counts = _gpersonfinder_import_persons(max_results)
+    res_output = ''
+    for k, v in counts.items():
+        res_output += '<br/>%s: %s' % (k, v)
+    return HttpResponse(res_output.strip())

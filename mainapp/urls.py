@@ -36,5 +36,6 @@ urlpatterns = [
     path('coordinator_home/', views.coordinator_home, name='coordinator_home'),
     path('find_people/', views.find_people, name='find_people'),
     path('announcements/', views.announcements, name="Announcements"),
-    path('camp_requirements/', views.camp_requirements_list, name='camp_requirements_list')
+    path('camp_requirements/', views.camp_requirements_list, name='camp_requirements_list'),
+    path('gpersonfinder_import/', views.gpersonfinder_import, name='gpersonfinder_import')
 ]
