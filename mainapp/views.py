@@ -186,7 +186,7 @@ def mapdata(request):
     if district != "all":
         data = Request.objects.exclude(latlng__exact="").exclude(data_source="GPF").filter(district=district).values()
     else:
-        data = Request.objects.exclude(latlng__exact="").exclude(data_source="GFP").values()
+        data = Request.objects.exclude(latlng__exact="").exclude(data_source="GPF").values()
     cache.set("mapdata:" + district, data, settings.CACHE_TIMEOUT)
     return JsonResponse(list(data) , safe=False)
 
