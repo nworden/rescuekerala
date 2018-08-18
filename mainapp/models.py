@@ -91,6 +91,9 @@ class Request(models.Model):
         default = 'new'
     )
     supply_details = models.CharField(max_length=100, blank=True)
+    other_info = models.CharField(max_length=1000, blank=True)
+    data_source = models.CharField(max_length=50, blank=True)
+    source_id = models.CharField(max_length=200, blank=True)
     dateadded = models.DateTimeField(auto_now_add=True)
 
     def summarise(self):
@@ -109,6 +112,8 @@ class Request(models.Model):
             out += "\nKit Requirements :\n {}".format(self.detailkit_util)
         if(len(self.needothers.strip()) != 0):
             out += "\nOther Needs :\n {}".format(self.needothers)
+        if(len(self.other_info.strip()) != 0):
+            out += "\nOther Information :\n {}".format(self.other_info)
         return out
 
     def __str__(self):
