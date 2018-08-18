@@ -3,7 +3,7 @@ import csv
 from django.contrib import admin
 from django.http import HttpResponse
 
-from .models import Request, Volunteer, Contributor, DistrictNeed, DistrictCollection, DistrictManager, vol_categories, RescueCamp, Person, NGO, Announcements
+from .models import Request, Volunteer, Contributor, DistrictNeed, DistrictCollection, DistrictManager, vol_categories, RescueCamp, Person, NGO, Announcements, GPersonFinderRecord, GPersonFinderNote
 
 
 def create_csv_response(csv_name, header_row, body_rows):
@@ -159,6 +159,12 @@ class PersonAdmin(admin.ModelAdmin):
         response = create_csv_response('People in relief camps', header_row, body_rows)
         return response
 
+class GPersonFinderRecordAdmin(admin.ModelAdmin):
+    pass
+
+class GPersonFinderNoteAdmin(admin.ModelAdmin):
+    pass
+
 admin.site.register(Request, RequestAdmin)
 admin.site.register(Volunteer, VolunteerAdmin)
 admin.site.register(Contributor, ContributorAdmin)
@@ -169,3 +175,5 @@ admin.site.register(RescueCamp, RescueCampAdmin)
 admin.site.register(NGO, NGOAdmin)
 admin.site.register(Announcements)
 admin.site.register(Person, PersonAdmin)
+admin.site.register(GPersonFinderRecord, GPersonFinderRecordAdmin)
+admin.site.register(GPersonFinderNote, GPersonFinderNoteAdmin)
