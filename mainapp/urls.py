@@ -31,4 +31,5 @@ urlpatterns = [
     path('camp/<int:camp_id>/add_person/', views.AddPerson.as_view(), name='add_person'),
     path('coordinator_home/', views.coordinator_home, name='coordinator_home'),
     path('find_people/', views.find_people, name='find_people'),
+    path('gpersonfinder_import/', views.gpersonfinder_import, name='gpersonfinder_import'),
 ]

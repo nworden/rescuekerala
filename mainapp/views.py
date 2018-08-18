@@ -20,6 +20,11 @@ from django.urls import reverse
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.http import Http404
 
+from floodrelief import settings as floodrelief_settings
+from mainapp.utils import pfif
+
+import urllib
+
 class CreateRequest(CreateView):
     model = Request
     template_name='mainapp/request_form.html'
@@ -333,3 +338,112 @@ def find_people(request):
 def coordinator_home(request):
     camps = RescueCamp.objects.filter(data_entry_user=request.user)
     return render(request,"mainapp/coordinator_home.html",{'camps':camps})
+
+PFIF_OTHER_DATA_KEYS = {
+  'description': '',
+  'last_known_location': 'Last Known Location',
+  'sex': 'Gender',
+  'age': 'Age',
+  'alternate_names': 'Alternate names',
+}
+
+PFIF_STATUS_STRS = {
+    '': 'Unspecified',
+    'is_note_author': 'is note author',
+    'believed_alive': 'believed alive',
+    'believed_missing': 'believed_missing'
+}
+
+def _gpersonfinder_import_some(counts, offset, max_results):
+  url = 'https://google.org/personfinder/2018-kerala-flooding/feeds/person?'
+  arg_map = {
+    'key': floodrelief_settings.env('GOOGLE_PERSON_FINDER_KEY'),
+    'skip': offset,
+    'max_results': max_results,
+    'min_entry_date': '2018-01-01T03:00:00Z',
+    }
+  url += '&'.join(['%s=%s' % (k, v) for k, v in arg_map.items()])
+  res = urllib.request.urlopen(url)
+  pfif_records = pfif.parse_file(res, rename_fields=False)[0]
+  for pfif_record in pfif_records:
+    if 'person_record_id' not in pfif_record:
+      counts['skipped: no person record id'] += 1
+      continue
+    if Request.objects.filter(
+        source_id=pfif_record['person_record_id']).exists():
+      counts['skipped: already exists'] += 1
+      continue
+    req = Request(
+        data_source='GPF',
+        source_id=pfif_record['person_record_id'],
+        needwater=False,
+        needfood=False,
+        needcloth=False,
+        needmed=False,
+        needtoilet=False,
+        needkit_util=False,
+        needrescue=False)
+    if 'full_name' in pfif_record:
+      req.requestee = pfif_record['full_name']
+    elif ('given_name' in pfif_record and 'family_name' in pfif_record):
+      req.requestee = '%s %s' % (
+          pfif_record['given_name'], pfif_record['family_name'])
+    if 'phone_of_found_person' in pfif_record:
+      req.requestee_phone = pfif_record['phone_of_found_person']
+    elif 'author_phone' in pfif_record:
+      req.requestee_phone = pfif_record['author_phone']
+    else:
+      req.requestee_phone = 'unknown'
+    # Person Finder is for people, Kerala Rescue is for rescues, and therefore
+    # there's a difference between the sorts of data fields each has. We put
+    # everything extra in the other_info field in case it is useful.
+    if 'status' in pfif_record:
+      status = pfif_record['status']
+      if status in ('information_sought', 'believed_dead'):
+        # I don't think these would be rescue requests.
+        counts['skipped: is_or_bd_status'] += 1
+        continue
+      req.other_info = 'status: %s' % PFIF_STATUS_STRS[status]
+    else:
+      req.other_info = ''
+    for key, label in PFIF_OTHER_DATA_KEYS.items():
+      if key in pfif_record:
+        if label:
+          req.other_info += '\n%s: %s' % (label, pfif_record[key])
+        else:
+          req.other_info += '\n%s' % pfif_record[key]
+    if 'note' in pfif_record:
+      for note in pfif_record['note']:
+        note_text = ''
+        if 'text' in note:
+          note_text = note['text']
+        if 'last_known_location' in note:
+          note_text += '\nlast known location: %s' % note['last_known_location']
+        req.other_info += '\n%s' % note_text
+    req.other_info = req.other_info.strip()
+    try:
+      req.save()
+    except Exception:
+      counts['skipped: other error'] += 1
+      continue
+    counts['done'] += 1
+
+def gpersonfinder_import(request):
+  if 'start' not in request.GET or 'end' not in request.GET:
+    return HttpResponse('Please specify start and end numbers to import.')
+  counts = {'done': 0,
+            'skipped: is_or_bd_status': 0,
+            'skipped: no person record id': 0,
+            'skipped: other error': 0,
+            'skipped: already exists': 0}
+  start_num = int(request.GET['start'])
+  end_num = int(request.GET['end'])
+  while start_num < end_num:
+    max_results = min(end_num - start_num, 200)
+    _gpersonfinder_import_some(
+        counts, offset=start_num, max_results=max_results)
+    start_num += max_results
+  output = ''
+  for key, count in counts.items():
+    output += '%s: %d<br/>' % (key, count)
+  return HttpResponse(output)
