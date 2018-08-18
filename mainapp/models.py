@@ -441,7 +441,7 @@ class GPersonFinderNote(models.Model):
     original_creation_date = models.CharField(max_length=20, blank=True)
     source_date = models.CharField(max_length=20, blank=True)
     status = models.CharField(choices=NOTE_STATUS_CHOICES, blank=True, max_length=25)
-    author_made_contact = models.BooleanField(blank=True)
+    author_made_contact = models.BooleanField(null=True)
     email_of_found_person = models.CharField(max_length=200, blank=True)
     phone_of_found_person = models.CharField(max_length=30, blank=True)
     last_known_location = models.CharField(max_length=500, blank=True)
