@@ -521,6 +521,9 @@ def _gpersonfinder_import_persons(max_results):
         url += '&'.join(['%s=%s' % (k, v) for k, v in arg_map.items()])
         res = urllib.request.urlopen(url)
         pfif_records = pfif.parse_file(res, rename_fields=False)[0]
+        if not pfif_records:
+            counts['ended early, no more readable records'] += 1
+            return counts
         for pfif_record in pfif_records:
             _gpersonfinder_import_process_person(pfif_record, counts)
         offset += iter_max_results
@@ -555,8 +558,6 @@ def _gpersonfinder_import_process_note(n, counts):
         counts['updated record' if is_update else 'new record'] += 1
     except Exception as e:
         counts['skipped: error on saving record'] += 1
-        print(n)
-        print(e)
     return counts
 
 def _gpersonfinder_import_notes(max_results):
@@ -581,6 +582,9 @@ def _gpersonfinder_import_notes(max_results):
         url +='&'.join(['%s=%s' % (k, v) for k, v in arg_map.items()])
         res = urllib.request.urlopen(url)
         pfif_records = pfif.parse_file(res, rename_fields=False)[1]
+        if not pfif_records:
+            counts['ended early, no more readable records'] += 1
+            return counts
         try:
             for pfif_record in pfif_records:
                 _gpersonfinder_import_process_note(pfif_record, counts)
