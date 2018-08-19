@@ -493,7 +493,7 @@ def _gpersonfinder_import_process_person(p, counts):
         is_update = False
     record.FillFromPfifRecord(p)
     if record.IsProbablyRescueRequest():
-        counts['probable rescue requets'] += 1
+        counts['probable rescue requests'] += 1
     try:
         record.save()
         counts['updated record' if is_update else 'new record'] += 1
@@ -562,7 +562,7 @@ def _gpersonfinder_import_process_note(n, counts):
         counts['skipped: error on saving record'] += 1
     return counts
 
-def _gpersonfinder_import_notes(max_results):
+def _gpersonfinder_import_notes(max_results, max_timestamp):
     latest_record_q = GPersonFinderNote.objects.order_by("-entry_date")
     if latest_record_q.exists():
         min_entry_date = (latest_record_q[0].entry_date)
@@ -589,10 +589,11 @@ def _gpersonfinder_import_notes(max_results):
             return counts
         try:
             for pfif_record in pfif_records:
+                if pfif_record['entry_date'] > max_timestamp:
+                    break
                 _gpersonfinder_import_process_note(pfif_record, counts)
         except LookupError:
-            counts['ended early, missing person record'] += 1
-            return counts
+            counts['skipped, no person record available'] += 1
         offset += iter_max_results
     return counts
 
@@ -602,7 +603,11 @@ def gpersonfinder_import(request):
     do_notes = request.GET['type'] == 'notes'
     max_results = int(request.GET['max_results']) or 1000
     if do_notes:
-        counts = _gpersonfinder_import_notes(max_results)
+        if 'max_timestamp' in request.GET:
+            max_timestamp = request.GET['max_timestamp']
+        else:
+            max_timestamp = GPersonFinderRecord.objects.order_by('-entry_date')[0].entry_date
+        counts = _gpersonfinder_import_notes(max_results, max_timestamp)
     else:
         counts = _gpersonfinder_import_persons(max_results)
     res_output = ''
