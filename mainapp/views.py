@@ -492,6 +492,7 @@ def _gpersonfinder_import_process_person(p, counts):
         record = GPersonFinderRecord(person_record_id=p['person_record_id'])
         is_update = False
     record.FillFromPfifRecord(p)
+    record.FindPotentialDuplicates()
     if record.IsProbablyRescueRequest():
         counts['probable rescue requests'] += 1
     try:

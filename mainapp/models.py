@@ -460,6 +460,18 @@ class GPersonFinderRecord(models.Model):
                             return True
         return False
 
+    def FindPotentialDuplicates(self):
+        # This has not been tested.
+        if not self.full_name:
+            return
+        person_q = Person.objects.filter(name=self.full_name)
+        if person_q.exists():
+            self.is_duplicate_of_person = person_q[0]
+        request_q = (Request.objects.filter(requestee=self.full_name)
+            .exclude(is_request_for_others=True))
+        if request_q.exists():
+            self.is_duplicate_of_request = request_q[0]
+
 class GPersonFinderNote(models.Model):
     NOTE_STATUS_CHOICES = (
         ('', 'Unspecified'),
