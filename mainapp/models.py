@@ -390,6 +390,8 @@ class GPersonFinderRecord(models.Model):
     profile_urls = models.CharField(max_length=400, blank=True)
     is_duplicate_of_person = models.ForeignKey('Person', null=True, on_delete=models.SET_NULL)
     is_duplicate_of_req = models.ForeignKey('Request', null=True, on_delete=models.SET_NULL)
+    # Whether any of the data in this record had to be truncated.
+    was_truncated = models.BooleanField(default=False)
 
     AUTO_PFIF_STRING_FIELD_MAPPING = {
         'author_name': 'author_name',
@@ -422,7 +424,12 @@ class GPersonFinderRecord(models.Model):
     def FillFromPfifRecord(self, p):
         for key, value in GPersonFinderRecord.AUTO_PFIF_STRING_FIELD_MAPPING.items():
             if key in p:
-                setattr(self, value, p[key])
+                max_len = self._meta.get_field(key).max_length
+                if max_len and len(p[key]) > max_len:
+                    self.was_truncated = True
+                    setattr(self, value, p[key][:max_len])
+                else:
+                    setattr(self, value, p[key])
 
     RESCUE_RELATED_TERMS = [
         'rescue',
@@ -477,6 +484,8 @@ class GPersonFinderNote(models.Model):
     last_known_location = models.CharField(max_length=500, blank=True)
     text = models.TextField(blank=True)
     photo_url = models.CharField(max_length=250, blank=True)
+    # Whether any of the data in this note had to be truncated.
+    was_truncated = models.BooleanField(default=False)
 
     AUTO_PFIF_STRING_FIELD_MAPPING = {
         'entry_date': 'entry_date',
@@ -497,6 +506,11 @@ class GPersonFinderNote(models.Model):
     def FillFromPfifRecord(self, p):
         for key, value in GPersonFinderNote.AUTO_PFIF_STRING_FIELD_MAPPING.items():
             if key in p:
-                setattr(self, value, p[key])
+                max_len = self._meta.get_field(key).max_length
+                if max_len and len(p[key]) > max_len:
+                    self.was_truncated = True
+                    setattr(self, value, p[key][:max_len])
+                else:
+                    setattr(self, value, p[key])
         if 'author_made_contact' in p:
             self.author_made_contact = p['author_made_contact'] == 'true'
