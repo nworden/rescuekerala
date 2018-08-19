@@ -452,7 +452,6 @@ class GPersonFinderRecord(models.Model):
                     if term in lowered:
                         return True
         for note in self.gpersonfindernote_set.all():
-            print('nick pt a')
             for _, v in note.__dict__.items():
                 if isinstance(v, str):
                     lowered = v.lower()
