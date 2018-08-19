@@ -595,6 +595,8 @@ def _gpersonfinder_import_notes(max_results):
     return counts
 
 def gpersonfinder_import(request):
+    if not request.user.is_superuser:
+        return HttpResponse('You must be logged in as a superuser to run this.')
     do_notes = request.GET['type'] == 'notes'
     max_results = int(request.GET['max_results']) or 1000
     if do_notes:
