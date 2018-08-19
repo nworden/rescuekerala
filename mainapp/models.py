@@ -424,6 +424,34 @@ class GPersonFinderRecord(models.Model):
             if key in p:
                 setattr(self, value, p[key])
 
+    RESCUE_RELATED_TERMS = [
+        'rescue',
+        'help',
+        'stranded',
+        'stuck',
+        'evac',
+        'situation',
+        'food',
+        'water',
+        'need',
+        'urgent',
+    ]
+
+    def IsProbablyRescueRequest(self):
+        for _, v in self.__dict__.items():
+            if isinstance(v, str):
+                lowered = v.lower()
+                for term in GPersonFinderRecord.RESCUE_RELATED_TERMS:
+                    if term in lowered:
+                        return True
+        for note in self.gpersonfindernote_set.all():
+            for _, v in self.__dict__.items():
+                if isinstance(v, str):
+                    for term in GPersonFinderRecord.RESCUE_RELATED_TERMS:
+                        if term in lowered:
+                            return True
+        return False
+
 class GPersonFinderNote(models.Model):
     NOTE_STATUS_CHOICES = (
         ('', 'Unspecified'),

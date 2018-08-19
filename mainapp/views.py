@@ -492,6 +492,8 @@ def _gpersonfinder_import_process_person(p, counts):
         record = GPersonFinderRecord(person_record_id=p['person_record_id'])
         is_update = False
     record.FillFromPfifRecord(p)
+    if record.IsProbablyRescueRequest():
+        counts['probable rescue requets'] += 1
     try:
         record.save()
         counts['updated record' if is_update else 'new record'] += 1
@@ -607,3 +609,15 @@ def gpersonfinder_import(request):
     for k, v in counts.items():
         res_output += '<br/>%s: %s' % (k, v)
     return HttpResponse(res_output.strip())
+
+def gpersonfinder_rescuereq_counter(request):
+    if not request.user.is_superuser:
+        return HttpResponse('You must be logged in as a superuser to run this.')
+    count = 0
+    total = 0
+    for p in GPersonFinderRecord.objects.all():
+        if p.IsProbablyRescueRequest():
+            count += 1
+        total += 1
+    return HttpResponse(
+        '%d of %d records are probably rescue requests.' % (count, total))
